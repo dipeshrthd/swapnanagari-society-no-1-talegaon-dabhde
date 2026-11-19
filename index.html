@@ -1994,8 +1994,7 @@
       } else if (pendingDelete.type === 'notice') {
         state.notices = state.notices.filter(n => n.id !== pendingDelete.id);
         renderAuditReports();
-    renderAuditReports();
-              renderNotices();
+    renderNotices();
       } else if (pendingDelete.type === 'flat') {
         state.flats = state.flats.filter(f => f.id !== pendingDelete.id);
         renderDues();
@@ -2898,6 +2897,114 @@
       rm.classList.add('hidden');
       rm.classList.remove('flex');
       showToast(`${m.name} यांचा पासवर्ड बदलला गेला!`);
+    });
+
+    // --- Audit Reports Logic ---
+    function renderAuditReports() {
+      const listEl = document.getElementById('audit-reports-list');
+      if (!listEl) return;
+      const reports = state.auditReports || [];
+      if (reports.length === 0) {
+        listEl.innerHTML = '<p class="text-sm text-slate-500 text-center py-6 bg-white rounded-xl border border-slate-200">अजून कोणताही ऑडिट रिपोर्ट अपलोड केलेला नाही.</p>';
+        return;
+      }
+      listEl.innerHTML = reports.map(r => `
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">📄 ${escapeHtml(r.title)}</h3>
+            <p class="text-xs text-slate-500 mt-1">${escapeHtml(r.fileName)} • अपलोड तारीख: ${escapeHtml(r.date)}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" data-view-audit="${escapeHtml(r.id)}" class="text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition">
+              👁️ पहा
+            </button>
+            <a href="${r.data}" download="${escapeHtml(r.fileName || 'audit-report.pdf')}" class="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition">
+              ⬇️ डाउनलोड
+            </a>
+            <button type="button" data-del-audit="${escapeHtml(r.id)}" class="text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition">
+              काढा
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('[data-view-audit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = state.auditReports.find(x => x.id === btn.getAttribute('data-view-audit'));
+          if (!item) return;
+          document.getElementById('pdf-viewer-title').textContent = item.title;
+          document.getElementById('pdf-viewer-frame').src = item.data;
+          const dl = document.getElementById('pdf-viewer-download');
+          dl.href = item.data;
+          dl.download = item.fileName || 'audit-report.pdf';
+          const vm = document.getElementById('pdf-viewer-modal');
+          vm.classList.remove('hidden');
+          vm.classList.add('flex');
+        });
+      });
+
+      listEl.querySelectorAll('[data-del-audit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-del-audit');
+          requireAdmin(() => askDelete('audit', id, 'हा ऑडिट रिपोर्ट काढून टाकायचा का?'));
+        });
+      });
+    }
+
+    document.getElementById('pdf-viewer-close').addEventListener('click', () => {
+      const vm = document.getElementById('pdf-viewer-modal');
+      vm.classList.add('hidden');
+      vm.classList.remove('flex');
+      document.getElementById('pdf-viewer-frame').src = '';
+    });
+
+    const auditModal = document.getElementById('audit-modal');
+    document.getElementById('add-audit-btn').addEventListener('click', () => {
+      requireAdmin(() => {
+        document.getElementById('audit-form').reset();
+        auditModal.classList.remove('hidden');
+        auditModal.classList.add('flex');
+      });
+    });
+
+    document.getElementById('au-cancel').addEventListener('click', () => {
+      auditModal.classList.add('hidden');
+      auditModal.classList.remove('flex');
+    });
+
+    document.getElementById('audit-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const title = document.getElementById('au-title').value.trim();
+      const file = document.getElementById('au-file').files[0];
+      if (!title || !file) {
+        showToast('कृपया रिपोर्टचे नाव आणि PDF फाईल निवडा.');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('कृपया २ MB पेक्षा लहान PDF निवडा.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const today = new Date().toLocaleDateString('mr-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        if (!Array.isArray(state.auditReports)) state.auditReports = [];
+        state.auditReports.unshift({
+          id: 'au_' + Date.now(),
+          title,
+          fileName: file.name,
+          date: today,
+          data: ev.target.result
+        });
+        saveState();
+        renderAuditReports();
+        auditModal.classList.add('hidden');
+        auditModal.classList.remove('flex');
+        showToast('ऑडिट रिपोर्ट अपलोड झाला!');
+      };
+      reader.onerror = () => {
+        showToast('PDF फाईल वाचताना त्रुटी आली.');
+      };
+      reader.readAsDataURL(file);
     });
 
     // Initial Render
