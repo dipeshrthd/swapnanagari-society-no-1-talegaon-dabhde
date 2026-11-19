@@ -1,0 +1,26 @@
+{
+  "name": "स्वप्ननगरी न 1 गृहरचना संस्था",
+  "short_name": "स्वप्ननगरी १",
+  "description": "स्वप्ननगरी न 1 गृहरचना संस्था — मासिक देखभाल, ऑडिट रिपोर्ट, सभासद व संपर्क केंद्र",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4338ca",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "./",
+  "scope": "./",
+  "orientation": "portrait-primary"
+}
